@@ -31,6 +31,7 @@ class EncryptedFile extends Model
         'file_path',
         'file_size',
         'encrypted_aes_key',
+        'iv',
         'signature',
         'hash',
         'mime_type',

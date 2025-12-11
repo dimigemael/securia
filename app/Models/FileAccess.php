@@ -26,6 +26,8 @@ class FileAccess extends Model
         'permission_level',
         'granted_by',
         'granted_at',
+        'expires_at',
+        'can_reshare',
         'revoked_at',
     ];
 
@@ -47,7 +49,9 @@ class FileAccess extends Model
     {
         return [
             'granted_at' => 'datetime',
+            'expires_at' => 'datetime',
             'revoked_at' => 'datetime',
+            'can_reshare' => 'boolean',
         ];
     }
 
@@ -108,7 +112,15 @@ class FileAccess extends Model
      */
     public function isActive(): bool
     {
-        return $this->revoked_at === null;
+        return $this->revoked_at === null && !$this->isExpired();
+    }
+
+    /**
+     * Vérifier si l'accès a expiré
+     */
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
     /**
