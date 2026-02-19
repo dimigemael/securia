@@ -24,6 +24,7 @@ class EncryptFileRequest extends FormRequest
     {
         return [
             'file_id' => ['required', 'integer', 'exists:encrypted_files,id'],
+            'passphrase' => ['required', 'string'],
             'key_id' => ['sometimes', 'integer', 'exists:user_keys,id'],
             'delete_original' => ['sometimes', 'boolean'], // Supprimer le fichier original après chiffrement ?
         ];

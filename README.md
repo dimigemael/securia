@@ -1,66 +1,117 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Securia
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Securia est une application sécurisée de stockage et de partage de fichiers, développée avec Laravel (backend) et React (frontend) utilisant Inertia.js. Elle intègre un chiffrement hybride robuste (AES-256-GCM + RSA-OAEP) et des signatures numériques pour une sécurité renforcée.
 
-## About Laravel
+## Table des Matières
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- [Fonctionnalités](#fonctionnalités)
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Lancement de l'Application](#lancement-de-lapplication)
+- [Exécution des Tests](#exécution-des-tests)
+- [Contribution](#contribution)
+- [Licence](#licence)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Fonctionnalités
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Authentification et autorisation des utilisateurs.
+- Chiffrement hybride des fichiers utilisant AES-256-GCM (contenu du fichier) et RSA-OAEP (clé AES).
+- Signatures numériques pour l'intégrité des fichiers et la non-répudiation (RSA-PSS).
+- Stockage sécurisé des paires de clés RSA des utilisateurs, chiffrées avec la phrase de passe de l'utilisateur (PBKDF2).
+- Flux de déchiffrement côté serveur et côté client pour une flexibilité accrue.
+- Partage de fichiers avec d'autres utilisateurs, assurant un échange de clés sécurisé.
+- Journalisation d'audit pour les activités liées aux fichiers.
 
-## Learning Laravel
+## Prérequis
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Avant de commencer, assurez-vous d'avoir les éléments suivants installés sur votre système :
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- **PHP**: ^8.2 (avec les extensions OpenSSL, Mbstring, PDO, BCMath)
+- **Composer**: ^2.0
+- **Node.js**: ^18.0 (LTS recommandé)
+- **npm**: ^9.0 (ou Yarn)
+- **Base de données**: MySQL, PostgreSQL, SQLite (SQLite est suffisant pour le développement local)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Installation
 
-## Laravel Sponsors
+1.  **Installer les dépendances PHP :**
+    ```bash
+    composer install
+    ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+2.  **Installer les dépendances JavaScript :**
+    ```bash
+    npm install
+    # ou yarn install
+    ```
 
-### Premium Partners
+## Configuration
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+1.  **Fichier d'environnement :**
+    Ouvrez le fichier `.env` et configurez votre connexion à la base de données ainsi que les autres variables d'environnement.
 
-## Contributing
+    -   **Pour MySQL :**
+        ```env
+        DB_CONNECTION=mysql
+        DB_HOST=127.0.0.1
+        DB_PORT=3306
+        DB_DATABASE=securia
+        DB_USERNAME=root
+        DB_PASSWORD=
+        ```
+    -   **Pour PostgreSQL :**
+        ```env
+        DB_CONNECTION=pgsql
+        DB_HOST=127.0.0.1
+        DB_PORT=5432
+        DB_DATABASE=securia
+        DB_USERNAME=postgres
+        DB_PASSWORD=
+        ```
+    -   **Pour SQLite :**
+        Si vous préférez SQLite pour le développement local, assurez-vous d'avoir un fichier `database.sqlite` vide dans le répertoire `database/`. Ensuite, configurez votre `.env` comme suit :
+        ```env
+        DB_CONNECTION=sqlite
+        # DB_DATABASE=/chemin/vers/votre/base_de_donnees.sqlite (ou laisser vide si vous utilisez le chemin par défaut : database/database.sqlite)
+        ```
+        (Vous pouvez supprimer les lignes `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD` pour SQLite car elles ne sont généralement pas utilisées.)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+2.  **Migration de la base de données :**
+    Exécutez les migrations de la base de données pour créer les tables nécessaires :
+    ```bash
+    php artisan migrate
+    ```
 
-## Code of Conduct
+## Lancement de l'Application
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1.  **Démarrer le serveur de développement :**
+    ```bash
+    php artisan serve
+    ```
+    Ceci lancera généralement l'application à l'adresse `http://localhost:8000`.
 
-## Security Vulnerabilities
+2.  **Lancer le serveur de développement Vite pour le frontend :**
+    ```bash
+    npm run dev
+    # ou yarn dev
+    ```
+    Ceci compilera vos ressources React et activera le rechargement à chaud.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+    Votre application devrait maintenant être accessible dans votre navigateur web à l'adresse `http://localhost:8000`.
 
-## License
+## Exécution des Tests
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Pour exécuter les tests automatisés de l'application :
+
+```bash
+php artisan test
+```
+
+## Contribution
+
+N'hésitez pas à contribuer au développement de Securia. Veuillez suivre le flux de travail Git standard : forker le dépôt, créer une nouvelle branche pour vos fonctionnalités/correctifs, et soumettre une Pull Request.
+
+## Licence
+
+Securia est un logiciel open-source sous licence [MIT](https://opensource.org/licenses/MIT).

@@ -25,6 +25,7 @@ class ShareFileRequest extends FormRequest
         return [
             'file_id' => ['required', 'integer', 'exists:encrypted_files,id'],
             'user_id' => ['required', 'integer', 'exists:users,id'],
+            'passphrase' => ['required_without:encrypted_key', 'string'],
             'encrypted_key' => ['sometimes', 'string'], // Clé AES re-chiffrée côté client
             'expires_at' => ['sometimes', 'date', 'after:now'],
             'can_reshare' => ['sometimes', 'boolean'], // L'utilisateur peut-il re-partager le fichier ?
