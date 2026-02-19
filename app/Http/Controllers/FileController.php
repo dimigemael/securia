@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\File\DecryptFileRequest;
+use App\Http\Requests\File\DownloadFileRequest;
 use App\Http\Requests\File\EncryptFileRequest;
 use App\Http\Requests\File\RevokeAccessRequest;
 use App\Http\Requests\File\ShareFileRequest;
@@ -124,10 +125,11 @@ class FileController extends Controller
 
             // Chiffrer le fichier immédiatement si demandé
             if ($request->boolean('encrypt_immediately', true)) {
+                $passphrase = $request->input('passphrase');
                 $encryptedFile = $this->fileEncryptionService->encryptFile(
                     $file,
                     $user,
-                    $user->password // Utiliser le hash du mot de passe
+                    $passphrase
                 );
 
                 // Logger l'action
@@ -205,11 +207,13 @@ class FileController extends Controller
                 true
             );
 
+            $passphrase = $request->input('passphrase');
+
             // Chiffrer le fichier
             $encryptedFile = $this->fileEncryptionService->encryptFile(
                 $tempFile,
                 $user,
-                $user->password
+                $passphrase
             );
 
             // Supprimer l'ancien fichier non chiffré si demandé
@@ -251,6 +255,7 @@ class FileController extends Controller
         try {
             $user = Auth::user();
             $fileId = $request->input('file_id');
+            $passphrase = $request->input('passphrase');
 
             $file = EncryptedFile::findOrFail($fileId);
 
@@ -261,11 +266,17 @@ class FileController extends Controller
                 ], 403);
             }
 
+            if (!$passphrase) {
+                return response()->json([
+                    'message' => 'La phrase de passe est requise pour le déchiffrement.',
+                ], 400);
+            }
+
             // Déchiffrer le fichier
             $decryptedContent = $this->fileEncryptionService->decryptFile(
                 $file,
                 $user,
-                $user->password
+                $passphrase
             );
 
             // Logger l'action
@@ -339,11 +350,12 @@ class FileController extends Controller
                 ]);
             } else {
                 // Sinon utiliser le service (chiffrement côté serveur - ancien système)
+                $passphrase = $request->input('passphrase');
                 $fileAccess = $this->fileAccessService->shareFile(
                     $file,
                     $user,
                     $recipient,
-                    $user->password,
+                    $passphrase,
                     $permissionLevel
                 );
             }
@@ -686,6 +698,22 @@ class FileController extends Controller
                 'action' => 'download',
             ]);
 
+            // Récupérer la clé AES chiffrée appropriée pour l'utilisateur
+            $isOwner = $file->owner_id === $user->id;
+            if ($isOwner) {
+                $encryptedAesKey = $file->encrypted_aes_key;
+            } else {
+                $fileAccess = \App\Models\FileAccess::where('file_id', $file->id)
+                    ->where('user_id', $user->id)
+                    ->where(function($query) {
+                        $query->whereNull('expires_at')
+                              ->orWhere('expires_at', '>', now());
+                    })
+                    ->firstOrFail();
+
+                $encryptedAesKey = $fileAccess->encrypted_aes_key;
+            }
+
             // Retourner le fichier chiffré avec métadonnées
             return response()->json([
                 'file' => [
@@ -693,7 +721,7 @@ class FileController extends Controller
                     'original_name' => $file->original_name,
                     'mime_type' => $file->mime_type,
                     'encrypted_content' => base64_encode($encryptedContent),
-                    'encrypted_key' => $file->encrypted_aes_key,
+                    'encrypted_key' => $encryptedAesKey,
                     'iv' => $file->iv,
                     'algorithm' => $file->encryption_algorithm,
                 ],
@@ -710,24 +738,18 @@ class FileController extends Controller
     /**
      * Télécharger un fichier déchiffré (ancien système - déchiffrement côté serveur)
      */
-    public function download(int $id): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
+    public function download(DownloadFileRequest $request, int $id): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
     {
         try {
             $user = Auth::user();
             $file = EncryptedFile::findOrFail($id);
-
-            // Vérifier l'accès
-            if (!$file->hasAccess($user)) {
-                return response()->json([
-                    'message' => 'Vous n\'avez pas accès à ce fichier.',
-                ], 403);
-            }
+            $passphrase = $request->input('passphrase');
 
             // Déchiffrer le fichier
             $decryptedContent = $this->fileEncryptionService->decryptFile(
                 $file,
                 $user,
-                $user->password
+                $passphrase
             );
 
             // Logger l'action

@@ -28,6 +28,7 @@ class UploadFileRequest extends FormRequest
                 'max:102400', // 100 MB max
             ],
             'encrypt_immediately' => ['sometimes', 'boolean'],
+            'passphrase' => ['required_if:encrypt_immediately,true', 'string'],
             'description' => ['sometimes', 'string', 'max:1000'],
             'tags' => ['sometimes', 'array'],
             'tags.*' => ['string', 'max:50'],

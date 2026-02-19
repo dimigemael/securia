@@ -258,4 +258,63 @@ Route::middleware(['auth'])->group(function () {
             'user' => auth()->user(),
         ]);
     })->name('profile.edit');
+
+    // =========================================================================
+    // API Routes (protégées par session)
+    // =========================================================================
+
+    Route::prefix('api')->name('api.')->group(function () {
+        // Authentification
+        Route::prefix('auth')->name('auth.')->group(function () {
+            Route::get('/me', [AuthController::class, 'me'])->name('me');
+        });
+
+        // Gestion des clés cryptographiques
+        Route::prefix('keys')->name('keys.')->group(function () {
+            Route::post('/generate', [KeyController::class, 'generate'])->name('generate');
+            Route::post('/rotate', [KeyController::class, 'rotate'])->name('rotate');
+            Route::post('/import', [KeyController::class, 'import'])->name('import');
+            Route::delete('/', [KeyController::class, 'destroy'])->name('destroy');
+            Route::get('/private-key', [KeyController::class, 'getEncryptedPrivateKey'])->name('private-key');
+            Route::get('/users/{userId}/public-key', [KeyController::class, 'getPublicKey'])->name('user-public-key');
+        });
+
+        // Gestion des fichiers
+        Route::prefix('files')->name('files.')->group(function () {
+            Route::post('/upload-encrypted', [FileController::class, 'uploadEncrypted'])->name('upload-encrypted');
+            Route::post('/upload', [FileController::class, 'upload'])->name('upload');
+            Route::post('/encrypt', [FileController::class, 'encrypt'])->name('encrypt');
+            Route::post('/decrypt', [FileController::class, 'decrypt'])->name('decrypt');
+            Route::get('/{id}', [FileController::class, 'getFileDetails'])->name('details');
+            Route::get('/{id}/download-encrypted', [FileController::class, 'downloadEncrypted'])->name('download-encrypted');
+            Route::post('/{id}/download', [FileController::class, 'download'])->name('download');
+            Route::post('/share', [FileController::class, 'share'])->name('share');
+            Route::post('/revoke-access', [FileController::class, 'revokeAccess'])->name('revoke-access');
+            Route::delete('/{id}', [FileController::class, 'destroy'])->name('destroy');
+        });
+
+        // Recherche d'utilisateurs
+        Route::get('/users/search', function () {
+            $query = request('query');
+            if (!$query || strlen($query) < 2) {
+                return response()->json(['users' => []]);
+            }
+            $users = \App\Models\User::where('id', '!=', auth()->id())
+                ->where(function ($q) use ($query) {
+                    $q->where('name', 'LIKE', "%{$query}%")->orWhere('email', 'LIKE', "%{$query}%");
+                })
+                ->limit(10)
+                ->get(['id', 'name', 'email'])
+                ->map(function ($user) {
+                    $keyManagementService = app(\App\Services\KeyManagementService::class);
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'has_keys' => $keyManagementService->hasKeys($user),
+                    ];
+                });
+            return response()->json(['users' => $users]);
+        })->name('users.search');
+    });
 });
